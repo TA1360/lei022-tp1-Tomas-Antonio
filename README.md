@@ -51,7 +51,3 @@ Gemini Google, ajudou-me a configurar o git com o github, a parte do projeto que
 - Códigos de Estado HTTP
 - Tratamento de Erros e Validações
 - Tabela Pedido · Esperado · Obtido
-
-## A ligação do Video
-
-https://drive.google.com/file/d/1mb7saDtHA0wA2jsVnBazk86JLg-cGoIF/view?usp=drive_link
