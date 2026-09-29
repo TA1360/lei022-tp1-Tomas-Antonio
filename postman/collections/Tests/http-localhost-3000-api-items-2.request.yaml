@@ -1,0 +1,9 @@
+$kind: http-request
+name: http://localhost:3000/api/items
+description: ""
+url: http://localhost:3000/api/items
+method: POST
+body:
+  type: json
+  content: "{\r\n  \"name\": \"Mochila\"\r\n}"
+order: 4489995831297708

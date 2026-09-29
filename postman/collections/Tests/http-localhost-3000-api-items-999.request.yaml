@@ -1,0 +1,6 @@
+$kind: http-request
+name: http://localhost:3000/api/items/999
+description: ""
+url: http://localhost:3000/api/items/999
+method: GET
+order: 4468152074061326

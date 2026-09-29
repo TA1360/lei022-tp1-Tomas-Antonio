@@ -1,0 +1,8 @@
+$kind: http-request
+name: http://localhost:3000/api/items
+description: ""
+url: http://localhost:3000/api/items?name=can
+method: GET
+queryParams:
+  name: can
+order: 955696299918004

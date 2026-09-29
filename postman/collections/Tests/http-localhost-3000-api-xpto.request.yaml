@@ -1,0 +1,6 @@
+$kind: http-request
+name: http://localhost:3000/api/xpto
+description: ""
+url: http://localhost:3000/api/xpto
+method: GET
+order: 4501033111185149

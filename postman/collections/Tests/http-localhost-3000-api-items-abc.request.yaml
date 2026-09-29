@@ -1,0 +1,6 @@
+$kind: http-request
+name: http://localhost:3000/api/items/abc
+description: ""
+url: http://localhost:3000/api/items/abc
+method: GET
+order: 4477716296605490

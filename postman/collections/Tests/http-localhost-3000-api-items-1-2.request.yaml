@@ -1,0 +1,13 @@
+$kind: http-request
+name: http://localhost:3000/api/items/1
+description: ""
+url: http://localhost:3000/api/items/1
+method: PUT
+body:
+  type: json
+  content: "{\r
+
+    \  \"name\": \"Caneta Atualizada\"\r
+
+    }"
+order: 4497071749223421
