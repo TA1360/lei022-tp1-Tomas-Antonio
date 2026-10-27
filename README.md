@@ -1,5 +1,5 @@
 # LEI022 - Laboratório de Desenvolvimento de Software
-## TP1: Primeira API REST (Ano letivo 2026/27)
+## TP2: Primeira API REST (Ano letivo 2026/27)
 
 * **Estudante:** Tomás António
 * **Número de Estudante:** 240001360
@@ -19,6 +19,32 @@ A partir da raiz do repositório, navegue para a pasta `backend/`:
 cd backend
 
 ```
+Instale os pacotes necessários na pasta `backend/`:
+
+```bash
+npm install express-graphql graphql
+
+```
+## 3. Comparação e Justificação Técnica
+
+* Padrão de comunicação e direção do fluxo:
+REST: Segue o modelo tradicional de pedido-resposta baseado em recursos mapeados a múltiplos URLs e verbos HTTP (GET, POST, PUT, DELETE).
+GraphQL: Utilizou um único endpoint central (/graphql) onde o cliente envia pedidos em formato de grafos para obter exatamente os dados pretendidos numa única requisição.
+
+* Adequação ao requisito e aos clientes envolvidos:
+O GraphQL adequou-se perfeitamente a clientes móveis ou web que necessitem de flexibilidade para requisitar propriedades específicas sem sobrecarregar a rede com dados desnecessários.
+
+* Complexidade de implementação e operação:
+A implementação exigiu a definição de um schema rígido e resolvers em memória, sendo ligeiramente mais complexa de configurar inicialmente do que as rotas diretas do Express em REST.
+
+* Tratamento de erros, validação e limitações relevantes:
+Em REST, os erros são mapeados diretamente para códigos de estado HTTP padronizados (ex: 400, 404).
+No GraphQL, a validação de argumentos e recursos inexistentes foi tratada nos resolvers através de exceções que devolvem mensagens estruturadas, embora o protocolo HTTP responda frequentemente com código 200.
+
+* Vantagem e desvantagem no contexto do projeto:
+Vantagem: Eliminação do over-fetching, permitindo ao cliente pedir apenas o campo (name) de um item sem receber dados adjacentes desnecessários.
+Desvantagem: Maior complexidade na gestão de erros e na cache a nível de rede, visto que quase todas as interações passam obrigatoriamente por um único método e endpoint HTTP (POST /graphql).
+
 ## 5. Testes Realizados (Pedido · Esperado · Obtido)
 
 | Pedido | Esperado | Obtido | Objetivo |
@@ -51,3 +77,5 @@ Gemini Google, ajudou-me a configurar o git com o github, a parte do projeto que
 - Códigos de Estado HTTP
 - Tratamento de Erros e Validações
 - Tabela Pedido · Esperado · Obtido
+- Correção de escrita
+- Estrutura do repositório
