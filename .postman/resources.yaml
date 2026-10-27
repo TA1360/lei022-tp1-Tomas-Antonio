@@ -3,3 +3,11 @@ workspace:
 cloudResources:
   collections:
     ../postman/collections/Tests: 58573903-3796af5c-d601-40c1-8c0a-6fd425783173
+localResources:
+  specs:
+    - ../postman/specs/AvaliacaoService/academico.proto
+    - ../postman/specs/AvaliacaoService-1/academico.proto
+resourceNameMappings:
+  specs:
+    - ../postman/specs/AvaliacaoService/academico.proto: AvaliacaoService
+    - ../postman/specs/AvaliacaoService-1/academico.proto: AvaliacaoService
