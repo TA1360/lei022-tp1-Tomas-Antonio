@@ -1,5 +1,5 @@
 # LEI022 - Laboratório de Desenvolvimento de Software
-## TP2: Primeira API REST (Ano letivo 2026/27)
+## TP2: Comunicação aplicacional alternativa e orientada a eventos (Ano letivo 2026/27)
 
 * **Estudante:** Tomás António
 * **Número de Estudante:** 240001360
