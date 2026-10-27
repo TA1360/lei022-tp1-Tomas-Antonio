@@ -1,0 +1,16 @@
+$kind: http-request
+url: http://localhost:3000/graphql
+method: POST
+body:
+  type: graphql
+  content:
+    query: "query {\r
+
+      \  items {\r
+
+      \    name\r
+
+      \  }\r
+
+      }"
+order: 1000
