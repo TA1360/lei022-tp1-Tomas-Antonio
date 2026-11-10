@@ -1,7 +1,7 @@
 const express = require('express');
-const { graphqlHTTP } = require('express-graphql');
-const { buildSchema } = require('graphql');
+const { PrismaClient } = require('@prisma/client');
 
+const prisma = new PrismaClient();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -24,7 +24,6 @@ function sendError(res, status, title, detail) {
 // Middleware para validar se o ID é um inteiro positivo
 function validateId(req, res, next) {
     const idStr = req.params.id;
-    // Verifica se é um inteiro estrito (ex: rejeita "abc", "1.5", "-1", "0")
     if (!/^[1-9]\d*$/.test(idStr)) {
         return sendError(res, 400, 'ID Inválido', `O id '${idStr}' não é um inteiro positivo.`);
     }
@@ -32,149 +31,168 @@ function validateId(req, res, next) {
     next();
 }
 
-// --- ENDPOINTS REST PARA /api/items ---
+// --- ENDPOINTS REST COM PRISMA (TP3) ---
 
-app.get('/api/items', (req, res) => {
-    const { name } = req.query;
-    
-    if (name !== undefined) {
-        const searchTerm = name.trim().toLowerCase();
-        if (!searchTerm) {
-            return res.json([]);
+// GET /api/items (Coleção ou com filtro por name)
+app.get('/api/items', async (req, res) => {
+    try {
+        const { name } = req.query;
+        let items;
+
+        if (name !== undefined) {
+            const searchTerm = name.trim();
+            if (!searchTerm) {
+                return res.json([]);
+            }
+            items = await prisma.item.findMany({
+                where: {
+                    name: {
+                        contains: searchTerm,
+                        mode: 'insensitive'
+                    }
+                },
+                include: { category: true } // Inclui a relação com a categoria
+            });
+        } else {
+            items = await prisma.item.findMany({
+                include: { category: true }
+            });
         }
-        const filtered = items.filter(item => item.name.toLowerCase().includes(searchTerm));
-        return res.json(filtered);
-    }
 
-    res.json(items);
+        res.json(items);
+    } catch (error) {
+        sendError(res, 500, 'Erro interno', 'Ocorreu um erro ao consultar os itens na base de dados.');
+    }
 });
 
-app.get('/api/items/:id', validateId, (req, res) => {
-    const item = items.find(i => i.id === req.itemId);
-    if (!item) {
-        return sendError(res, 404, 'Não encontrado', `Não existe item com id ${req.itemId}`);
-    }
-    res.json(item);
-});
+// GET /api/items/:id
+app.get('/api/items/:id', validateId, async (req, res) => {
+    try {
+        const item = await prisma.item.findUnique({
+            where: { id: req.itemId },
+            include: { category: true }
+        });
 
-app.post('/api/items', (req, res) => {
-    const { name } = req.body;
-
-    if (!name || typeof name !== 'string' || !name.trim()) {
-        return sendError(res, 400, 'Requisição Inválida', `O campo 'name' é obrigatório e deve ser um texto válido.`);
-    }
-
-    const cleanName = name.trim();
-
-    const newItem = {
-        id: nextId++,
-        name: cleanName
-    };
-
-    items.push(newItem);
-
-    res.status(201)
-        .setHeader('Location', `/api/items/${newItem.id}`)
-        .json(newItem);
-});
-
-app.put('/api/items/:id', validateId, (req, res) => {
-    const { name } = req.body;
-
-    if (!name || typeof name !== 'string' || !name.trim()) {
-        return sendError(res, 400, 'Requisição Inválida', `O campo 'name' é obrigatório e deve ser um texto válido.`);
-    }
-
-    const itemIndex = items.findIndex(i => i.id === req.itemId);
-    if (itemIndex === -1) {
-        return sendError(res, 404, 'Não encontrado', `Não existe item com id ${req.itemId}`);
-    }
-
-    items[itemIndex].name = name.trim();
-    res.json(items[itemIndex]);
-});
-
-app.delete('/api/items/:id', validateId, (req, res) => {
-    const itemIndex = items.findIndex(i => i.id === req.itemId);
-    if (itemIndex === -1) {
-        return sendError(res, 404, 'Não encontrado', `Não existe item com id ${req.itemId}`);
-    }
-
-    items.splice(itemIndex, 1);
-    res.status(204).send();
-});
-
-const schema = buildSchema(`
-    type Item {
-    id: Int!
-    name: String!
-    }
-
-    type Query {
-    items: [Item]
-    item(id: Int!): Item
-    }
-
-    type Mutation {
-    createItem(name: String!): Item
-    updateItem(id: Int!, name: String!): Item
-    }
-`);
-
-const root = {
-    items: () => items,
-    
-    item: ({ id }) => {
-        const found = items.find(i => i.id === id);
-        if (!found) {
-            throw new Error(`Não existe item com id ${id}`);
+        if (!item) {
+            return sendError(res, 404, 'Não encontrado', `Não existe item com id ${req.itemId}`);
         }
-        return found;
-    },
+        res.json(item);
+    } catch (error) {
+        sendError(res, 500, 'Erro interno', 'Ocorreu um erro ao consultar o item.');
+    }
+});
 
-    createItem: ({ name }) => {
+// POST /api/items (Com suporte a categoria e transação se necessário)
+app.post('/api/items', async (req, res) => {
+    try {
+        const { name, categoryId } = req.body;
+
         if (!name || typeof name !== 'string' || !name.trim()) {
-            throw new Error("O campo 'name' é obrigatório e deve ser um texto válido.");
+            return sendError(res, 400, 'Requisição Inválida', `O campo 'name' é obrigatório e deve ser um texto válido.`);
         }
-        const newItem = {
-            id: nextId++,
-            name: name.trim()
-        };
-        items.push(newItem);
-        return newItem;
-    },
 
-    updateItem: ({ id, name }) => {
-        if (!name || typeof name !== 'string' || !name.trim()) {
-            throw new Error("O campo 'name' é obrigatório e deve ser um texto válido.");
+        if (!categoryId || typeof categoryId !== 'number') {
+            return sendError(res, 400, 'Requisição Inválida', `O campo 'categoryId' é obrigatório e deve ser um número.`);
         }
-        const index = items.findIndex(i => i.id === id);
-        if (index === -1) {
-            throw new Error(`Não existe item com id ${id}`);
+
+        // Verifica se a categoria existe
+        const categoryExists = await prisma.category.findUnique({
+            where: { id: categoryId }
+        });
+
+        if (!categoryExists) {
+            return sendError(res, 400, 'Categoria inválida', `A categoria com id ${categoryId} não existe.`);
         }
-        items[index].name = name.trim();
-        return items[index];
+
+        const cleanName = name.trim();
+
+        const newItem = await prisma.item.create({
+            data: {
+                name: cleanName,
+                categoryId: categoryId
+            },
+            include: { category: true }
+        });
+
+        res.status(201)
+            .setHeader('Location', `/api/items/${newItem.id}`)
+            .json(newItem);
+    } catch (error) {
+        // Tratamento de violação de valor único (ex: nome do item duplicado)
+        if (error.code === 'P2002') {
+            return sendError(res, 409, 'Conflito', 'Já existe um item com esse nome.');
+        }
+        sendError(res, 500, 'Erro interno', 'Ocorreu um erro ao criar o item.');
     }
-};
+});
 
-// Endpoint GraphQL integrado
-app.use('/graphql', graphqlHTTP({
-    schema: schema,
-    rootValue: root,
-    graphiql: true, // Permite testar visualmente no browser em http://localhost:3000/graphql
-}));
+// PUT /api/items/:id
+app.put('/api/items/:id', validateId, async (req, res) => {
+    try {
+        const { name } = req.body;
 
+        if (!name || typeof name !== 'string' || !name.trim()) {
+            return sendError(res, 400, 'Requisição Inválida', `O campo 'name' é obrigatório e deve ser um texto válido.`);
+        }
 
-// --- TRATAMENTO DE ROTAS E ERROS ---
+        const updatedItem = await prisma.item.update({
+            where: { id: req.itemId },
+            data: { name: name.trim() },
+            include: { category: true }
+        });
 
+        res.json(updatedItem);
+    } catch (error) {
+        // Registo não encontrado no Prisma
+        if (error.code === 'P2025') {
+            return sendError(res, 404, 'Não encontrado', `Não existe item com id ${req.itemId}`);
+        }
+        sendError(res, 500, 'Erro interno', 'Ocorreu um erro ao atualizar o item.');
+    }
+});
+
+// DELETE /api/items/:id
+app.delete('/api/items/:id', validateId, async (req, res) => {
+    try {
+        await prisma.item.delete({
+            where: { id: req.itemId }
+        });
+
+        res.status(204).send();
+    } catch (error) {
+        if (error.code === 'P2025') {
+            return sendError(res, 404, 'Não encontrado', `Não existe item com id ${req.itemId}`);
+        }
+        sendError(res, 500, 'Erro interno', 'Ocorreu um erro ao remover o item.');
+    }
+});
+
+// --- ROTA EXTRA PARA CRIAR CATEGORIAS (Útil para testar relações) ---
+app.post('/api/categories', async (req, res) => {
+    try {
+        const { name } = req.body;
+        if (!name || !name.trim()) {
+            return sendError(res, 400, 'Requisição Inválida', "O campo 'name' da categoria é obrigatório.");
+        }
+
+        const newCategory = await prisma.category.create({
+            data: { name: name.trim() }
+        });
+
+        res.status(201).json(newCategory);
+    } catch (error) {
+        if (error.code === 'P2002') {
+            return sendError(res, 409, 'Conflito', 'Essa categoria já existe.');
+        }
+        sendError(res, 500, 'Erro interno', 'Erro ao criar categoria.');
+    }
+});
+
+// Tratamento de rotas desconhecidas (404)
 app.use((req, res) => {
     sendError(res, 404, 'Rota não encontrada', `A rota ${req.originalUrl} não existe.`);
 });
 
-app.use((err, req, res, next) => {
-    sendError(res, 400, 'Erro no pedido', 'Ocorreu um erro ao processar o JSON ou os dados enviados.');
-});
-
 app.listen(PORT, () => {
-    console.log(`Servidor a correr em http://localhost:${PORT}`);
+    console.log(`Servidor TP3 a correr em http://localhost:${PORT}`);
 });
