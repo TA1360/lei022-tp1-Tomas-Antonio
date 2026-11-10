@@ -1,17 +1,19 @@
 # LEI022 - Laboratório de Desenvolvimento de Software
-## TP2: Comunicação aplicacional alternativa e orientada a eventos (Ano letivo 2026/27)
+## TP3: Persistência e Relações na API (Ano letivo 2026/27)
 
 * **Estudante:** Tomás António
 * **Número de Estudante:** 240001360
 
 ---
 
-## 1. Versão do Node.js
-* **Versão utilizada:** Node.js v23.8.0 (LTS)
+## 1. Versão do Node.js e Tecnologias
+* **Node.js:** v23.8.0 (LTS)
+* **Base de Dados:** PostgreSQL
+* **ORM:** Prisma
 
 ---
 
-## 2. Instruções de Instalação e Execução
+## 2. Instruções de Instalação, Configuração e Execução
 
 A partir da raiz do repositório, navegue para a pasta `backend/`:
 
@@ -22,9 +24,28 @@ cd backend
 Instale os pacotes necessários na pasta `backend/`:
 
 ```bash
-npm install express-graphql graphql
+npm install
 
 ```
+Crie um ficheiro `.env` na pasta `backend/` com a string de ligação à sua base de dados PostgreSQL:
+
+```env
+DATABASE_URL="postgresql://postgres:Ips30354093@localhost:5432/TP-lei2022?schema=public"
+
+```
+Execute as migrações do Prisma para criar as tabelas necessárias:
+
+```bash
+npx prisma migrate dev --name init
+
+```
+Inicie o servidor na pasta `backend/`:
+
+```bash
+node server.js
+
+```
+
 ## 3. Comparação e Justificação Técnica
 
 * Padrão de comunicação e direção do fluxo:
@@ -45,34 +66,25 @@ No GraphQL, a validação de argumentos e recursos inexistentes foi tratada nos 
 Vantagem: Eliminação do over-fetching, permitindo ao cliente pedir apenas o campo (name) de um item sem receber dados adjacentes desnecessários.
 Desvantagem: Maior complexidade na gestão de erros e na cache a nível de rede, visto que quase todas as interações passam obrigatoriamente por um único método e endpoint HTTP (POST /graphql).
 
+* Relações e Persistência (TP3)
+O projeto evoluiu para uma arquitetura persistente baseada em PostgreSQL com o Prisma ORM. Foi modelada uma relação 1:N entre Category e Item (uma categoria possui múltiplos itens). A base de dados assegura a integridade referencial, restrições de unicidade e a persistência dos dados mesmo após reiniciar a aplicação.
+
 ## 5. Testes Realizados (Pedido · Esperado · Obtido)
 
 | Pedido | Esperado | Obtido | Objetivo |
 | :--- | :--- | :--- | :--- |
-| `GET /api/items` | `200` | `200` | Consultar coleção |
-| `GET /api/items/1` | `200` | `200` | Recurso existente |
-| `GET /api/items/999` | `404` | `404` | Recurso inexistente |
-| `GET /api/items/abc` | `400` | `400` | ID inválido |
-| `GET /api/items?name=can` | `200` | `200` | Filtro por nome (case-insensitive) |
-| `GET /api/items?name=xyz` | `200 + []` | `200 + []` | Filtro sem resultados |
-| `POST /api/items` (válido) | `201 + Location` | `201 + Location` | Criação de recurso |
-| `POST /api/items` (inválido) | `400` | `400` | Validação de corpo |
-| `POST /api/items` (sem corpo) | `400` | `400` | Corpo em falta |
-| `POST /api/items` (JSON malformado) | `400` | `400` | Corpo ilegível |
-| `PUT /api/items/1` (válido) | `200` | `200` | Atualização de recurso |
-| `PUT /api/items/999` | `404` | `404` | Recurso inexistente |
-| `PUT /api/items/abc` | `400` | `400` | ID inválido |
-| `DELETE /api/items/1` | `204` | `204` | Remoção de recurso |
-| `DELETE /api/items/999` | `404` | `404` | Recurso inexistente |
-| `DELETE /api/items/abc` | `400` | `400` | ID inválido |
-| `GET /api/xpto` (rota desconhecida) | `404` (Problem Details) | `404` (Problem Details) | Rota inexistente |
-| Recurso Adicional: POST válido | `201` | `201` | Sucesso no recurso adicional |
-| Recurso Adicional: Estado inválido | `400` | `400` | Valores permitidos violados |
-| Recurso Adicional: Título duplicado | `409` | `409` | Regra de conflito violada |
+| `POST /api/categories` | `201 Created` | `201 Created` | Criar nova categoria |
+| `POST /api/categories (Duplicado)` | `409 Conflit` | `409 Conflit` | Validação de nome único de categoria |
+| `POST /api/items` | `201 Created` | `201 Created` | Criar item associado a uma categoria |
+| `GET /api/items` | `200 OK` | `200 OK` | Consultar itens com relação de categoria incluída |
+| `GET /api/items/999` | `404 Not Found` | `404 Not Found` | Recurso inexistente |
+| `POST /api/items (categoria inválida)` | `400 Bad Request` | `400 Bad Request` | Validação de chave estrangeira |
+| `POST /api/items (nome duplicado)` | `409 Conflict` | `409 Conflict` | Violação de restrição única no Prisma |
+| `DELETE /api/items/1` | `204 No Content` | `204 No Content` | Remoção de recurso persistido |
 
 ## O uso da Inteligência Artificial
 
-Gemini Google, ajudou-me a configurar o git com o github, a parte do projeto que ajudou me foi backend, parte dos api do postman e validou:
+Gemini Google ajudou-me a configurar o git com o github, a estruturar o código do backend com o Prisma ORM e PostgreSQL, a adaptar o tratamento de erros e códigos de estado HTTP para a persistência, e a estruturar a documentação e tabela de testes
 - Testes Automatizados
 - Códigos de Estado HTTP
 - Tratamento de Erros e Validações
